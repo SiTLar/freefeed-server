@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken'
 
 import { load as configLoader } from '../config/config'
 import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
-import { PostsController } from './controllers'
+import { socketController } from './controllers/api/socketio'
 
 
 promisifyAll(jwt)
@@ -97,6 +97,12 @@ export default class PubsubListener {
         })
       }
     })
+
+    socket.on('createPost', (data) => {
+      socketController.handle('createPost', data);
+
+    })
+
   }
 
   onRedisMessage = async (channel, msg) => {

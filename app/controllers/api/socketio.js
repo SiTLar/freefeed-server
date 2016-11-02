@@ -1,4 +1,4 @@
-import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from '../../models'
+import { dbAdapter } from '../../models'
 import jwt from 'jsonwebtoken'
 import PostsController from '../../controllers'
 import { load as configLoader } from '../config/config'
