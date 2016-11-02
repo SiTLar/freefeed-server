@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken'
 
 import { load as configLoader } from '../config/config'
 import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
+import { PostsController } from './controllers'
 
 
 promisifyAll(jwt)
