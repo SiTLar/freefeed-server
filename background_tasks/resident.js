@@ -30,7 +30,6 @@ class Handler{
 					Handler.post(feed.token, record.body, record.attachments);
 				});
 			});
-			//this.emit('createPost', );
 		}catch(e){console.log('Import failed:', e)}
 
 	}
@@ -40,21 +39,27 @@ class Handler{
 			const res = await Handler.attachment( token, url );
 			return JSON.parse(res).data.attachments.id;
 		}));
-		socket.emit('createPost',{
-			'id':uuid.v4(),
-			'authToken':token,
-			'body':{
-				//'meta':{'feeds':['squid']},
-				'meta':{'feeds':['squid']},
-				'post':{
-					'body':body,
-					'attachments':attSent
+		return new Promise(function(resolve,reject){ 
+			const id =  uuid.v4();
+			socket.emit('createPost',{
+				'id':id,
+				'authToken':token,
+				'body':{
+					//'meta':{'feeds':['squid']},
+					'meta':{'feeds':['squid']},
+					'post':{
+						'body':body,
+						'attachments':attSent
+					}
 				}
-			}
+			});
+			transactions[id] = (res)=>{
+				if(res.err)reject(res); 
+				else resolve(res);
+			};
 		});
 	}
 	static attachment( token, url ){
-		console.log(url)
 		const id =  uuid.v4();
 		return new Promise(function(resolve,reject){ 
 			adapterFor(url).get(url, (msg) => {
@@ -74,7 +79,7 @@ class Handler{
 		try{
 			transactions[msg.id](msg.res);
 			delete transactions[msg.id];
-		}catch(e){console.log('Respose processing failsed', msg)}
+		}catch(e){console.log('Respose processing failed', msg)}
 	}
 
 } 
@@ -93,8 +98,8 @@ process.on('message', (msg) => {
 			socket.on(msg, messageHandlers[msg]);
 		});
 		socket.emit('subscribe', {'IPC':[msg.data]});
-		socket.emit('resident ready');
 		/*
+		socket.emit('resident ready');
 		setTimeout(()=>{
 			console.log("go");
 			Handler.post(socket,'Test post with an attachment',URLs);
