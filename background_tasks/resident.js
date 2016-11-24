@@ -2,7 +2,8 @@ import IoClient from 'socket.io-client';
 import SIOStream  from 'socket.io-stream';
 import uuid from 'uuid';
 import process from 'process';
-import { reportError } from '../app/support/exceptions'
+import { reportError } from '../app/support/exceptions';
+import * as ImportControllers from '../import_controllers';
 var adapterFor = (function() {
   var url = require('url'),
     adapters = {
@@ -15,21 +16,28 @@ var adapterFor = (function() {
   }
 }());
 var transactions = {};
-var token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI2ZDg5MzRjZi1hZjM2LTQ5NTItOTcyNC0yMjk2NTExNjQ4NDgiLCJpYXQiOjE0NzgxMzM1NjF9.O1cM9ivUADCTVesIGdqEtHMFYHZgFHp7gjUTzCqkpKU";
-var URLs = ["https://cdn.rawgit.com/thelinmichael/lunar-phases/master/images/browser-icons/24.png", "http://twinspect.net/help.png" ];
+var socket;
 class Handler{
 	static socketError(e){
-		console.log(e);
+		console.log('Socket error:', e);
 	}
 
-	static async imFriend(req){
-		console.log(req);
-		//this.emit('createPost', );
+	static async doImport(feeds){
+		try{
+			feeds.forEach(async (feed)=>{
+				const records = await ImportControllers[feed.service](feed.params);
+				records.forEach((record)=>{
+					Handler.post(feed.token, record.body, record.attachments);
+				});
+			});
+			//this.emit('createPost', );
+		}catch(e){console.log('Import failed:', e)}
+
 	}
 
-	static async post(socket, body,  attachmnetURLs){
+	static async post(token, body,  attachmnetURLs){
 		let attSent = await Promise.all(attachmnetURLs.map(async (url)=>{
-			const res = await Handler.attachment(url,socket);
+			const res = await Handler.attachment( token, url );
 			return JSON.parse(res).data.attachments.id;
 		}));
 		socket.emit('createPost',{
@@ -45,7 +53,8 @@ class Handler{
 			}
 		});
 	}
-	static attachment(url, socket){
+	static attachment( token, url ){
+		console.log(url)
 		const id =  uuid.v4();
 		return new Promise(function(resolve,reject){ 
 			adapterFor(url).get(url, (msg) => {
@@ -58,20 +67,20 @@ class Handler{
 				});
 				msg.pipe(stream);
 				transactions[id] = resolve;
-			}).on('error', console.log);
+			}).on('error', (e)=>{console.log('Loading attahment failed:', e);reject(e)});
 		});
 	}
 	static response(msg){
 		try{
 			transactions[msg.id](msg.res);
 			delete transactions[msg.id];
-		}catch(e){console.log(msg)}
+		}catch(e){console.log('Respose processing failsed', msg)}
 	}
 
 } 
 const messageHandlers = {
 	'error':Handler.socketError,
-	'imFriend':Handler.imFriend,
+	'doImport':Handler.doImport,
 	'API_res': Handler.response
 	
 }
@@ -79,11 +88,12 @@ const messageHandlers = {
 process.on('message', (msg) => {
 	switch(msg.type){
 	case 'IPC_token':
-		let socket = IoClient.connect('http://localhost:3000');
+		socket = IoClient.connect('http://localhost:3000');
 		Object.keys(messageHandlers).forEach((msg) => {
 			socket.on(msg, messageHandlers[msg]);
 		});
 		socket.emit('subscribe', {'IPC':[msg.data]});
+		socket.emit('resident ready');
 		/*
 		setTimeout(()=>{
 			console.log("go");

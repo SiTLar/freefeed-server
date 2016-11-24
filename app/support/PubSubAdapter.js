@@ -8,7 +8,8 @@ const CHANNEL_NAMES = {
   COMMENT_UPDATED:   'comment:update',
   COMMENT_DESTROYED: 'comment:destroy',
   LIKE_ADDED:        'like:new',
-  LIKE_REMOVED:      'like:remove'
+  LIKE_REMOVED:      'like:remove',
+  INITIATE_IMPORT:   'initiateImport'
 }
 
 export class PubSubAdapter {
@@ -60,6 +61,12 @@ export class PubSubAdapter {
 
   likeRemoved(payload) {
     return this._publish(CHANNEL_NAMES.LIKE_REMOVED, payload)
+  }
+
+  ///////////////////////////////////////////////////
+
+  initiateImport(payload) {
+    return this._publish(CHANNEL_NAMES.INITIATE_IMPORT, payload)
   }
 
   ///////////////////////////////////////////////////

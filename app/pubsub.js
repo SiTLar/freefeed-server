@@ -84,4 +84,8 @@ export default class pubSub {
     const payload = JSON.stringify({ timelineId, postId })
     await this.publisher.postUnhidden(payload)
   }
+
+  async initiateImport(payload){
+    await this.publisher.initiateImport(payload);
+  }
 }

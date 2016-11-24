@@ -7,7 +7,7 @@ import redis_adapter from 'socket.io-redis'
 import jwt from 'jsonwebtoken'
 
 import { load as configLoader } from '../config/config'
-import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer } from './models'
+import { dbAdapter, LikeSerializer, PostSerializer, PubsubCommentSerializer, PubSub as pubSub } from './models'
 import socketController from './controllers/api/socketio'
 
 
@@ -38,7 +38,7 @@ export default class PubsubListener {
     redisClient.on('error', (err) => { app.logger.error('redis error', err) })
     redisClient.subscribe('post:new', 'post:destroy', 'post:update',
       'comment:new', 'comment:destroy', 'comment:update',
-      'like:new', 'like:remove', 'post:hide', 'post:unhide')
+      'like:new', 'like:remove', 'post:hide', 'post:unhide', 'initiateImport')
 
     redisClient.on('message', this.onRedisMessage)
   }
@@ -119,6 +119,21 @@ export default class PubsubListener {
       const res = await socketController.handle(this.app, 'createAttachment', data);
       socket.emit('API_res', {'id' : data.id, 'res': res}); 
     });
+
+    socket.on('resident ready', async () => {
+      await pubSub.initiateImport(JSON.stringify([{
+        'service':'twitter',
+	'token':"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI2ZDg5MzRjZi1hZjM2LTQ5NTItOTcyNC0yMjk2NTExNjQ4NDgiLCJpYXQiOjE0NzgxMzM1NjF9.O1cM9ivUADCTVesIGdqEtHMFYHZgFHp7gjUTzCqkpKU",
+        'params':{
+          'credentials':{
+            'access_token_key': '748889296405430272-SIPGrwvsKqvrlIQfgdvvfYFNwlnFOXb',
+            'access_token_secret': 'OtRc3PdhD9vCS0zgbdhQXzAs48OZAjp7eJY0dZs1gk1Eb'
+          },
+          'lastId':800858864828772352,
+          'userid':1571270053
+	}
+      }]));
+    })
   }
 
   onRedisMessage = async (channel, msg) => {
@@ -134,7 +149,8 @@ export default class PubsubListener {
       'comment:destroy': this.onCommentDestroy,
 
       'like:new':    this.onLikeNew,
-      'like:remove': this.onLikeRemove
+      'like:remove': this.onLikeRemove,
+      'initiateImport': this.onImport
     }
 
     messageRoutes[channel](
@@ -395,5 +411,8 @@ export default class PubsubListener {
     // event won't leak any personal information
     const json = { meta: { postId: data.postId } }
     sockets.in(`timeline:${data.timelineId}`).emit('post:unhide', json)
+  }
+  onImport = async (sockets, data) => {
+    sockets.in(`IPC:${this.app.IPCToken}`).emit('doImport', data)
   }
 }
