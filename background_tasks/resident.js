@@ -98,8 +98,8 @@ process.on('message', (msg) => {
 			socket.on(msg, messageHandlers[msg]);
 		});
 		socket.emit('subscribe', {'IPC':[msg.data]});
-		/*
 		socket.emit('resident ready');
+		/*
 		setTimeout(()=>{
 			console.log("go");
 			Handler.post(socket,'Test post with an attachment',URLs);

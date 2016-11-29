@@ -1,13 +1,11 @@
 import Twitter from 'twitter';
-import { promisifyAll } from 'bluebird';
-import util from 'util';
 export default async function(params){
 	const controller = new TwitterController(params);
 	const tweets = await controller.getTweetsSince(params.lastid);
 	return tweets.map((tweet)=>{
 		const media = tweet.entities.media || [];
 		return {
-			'body':tweet.text
+			'body':`${tweet.text} Read on Twitter: https://twitter.com/statuses/${tweet.id}`
 			,'attachments': media.map((medium)=>{
 				return medium.media_url_https;
 			})

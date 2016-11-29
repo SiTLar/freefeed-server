@@ -122,15 +122,15 @@ export default class PubsubListener {
 
     socket.on('resident ready', async () => {
       await pubSub.initiateImport(JSON.stringify([{
-        'service':'twitter',
+        'service':'facebook',
 	'token':"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI2ZDg5MzRjZi1hZjM2LTQ5NTItOTcyNC0yMjk2NTExNjQ4NDgiLCJpYXQiOjE0NzgxMzM1NjF9.O1cM9ivUADCTVesIGdqEtHMFYHZgFHp7gjUTzCqkpKU",
         'params':{
           'credentials':{
-            'access_token_key': '748889296405430272-SIPGrwvsKqvrlIQfgdvvfYFNwlnFOXb',
-            'access_token_secret': 'OtRc3PdhD9vCS0zgbdhQXzAs48OZAjp7eJY0dZs1gk1Eb'
+
+            'access_token_key': '***'
           },
-          'lastId':800858864828772352,
-          'userid':1571270053
+          'lastId':1418995744,
+          'userid':10202656910379568
 	}
       }]));
     })
