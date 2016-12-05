@@ -20,6 +20,7 @@ import RequestsRouteV2 from './routes/api/v2/RequestsRoute'
 import SearchRoute from './routes/api/v2/SearchRoute'
 import TimelinesRouteV2 from './routes/api/v2/TimelinesRoute'
 import UsersRouteV2 from './routes/api/v2/UsersRoute'
+import ImportAuthRouteV2 from './routes/api/v2/ImportAuthRoute'
 
 const config = configLoader();
 promisifyAll(jwt);
@@ -70,4 +71,5 @@ export default function (app) {
   SearchRoute(app);
   TimelinesRouteV2(app);
   UsersRouteV2(app);
+  ImportAuthRouteV2(app);
 }
