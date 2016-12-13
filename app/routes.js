@@ -50,6 +50,8 @@ export default function (app) {
 
   app.use(express.static(`${__dirname}/../${config.attachments.storage.rootDir}`));
 
+  app.all('/*', findUser);
+  ImportAuthRouteV2(app);
   // unauthenticated routes
   app.options('/*', (req, res) => {
     res.status(200).send({})
@@ -58,7 +60,6 @@ export default function (app) {
   SessionRoute(app);
 
   // [at least optionally] authenticated routes
-  app.all('/*', findUser);
   AttachmentsRoute(app);
   BookmarkletRoute(app);
   CommentsRoute(app);
@@ -73,7 +74,6 @@ export default function (app) {
   SearchRoute(app);
   TimelinesRouteV2(app);
   UsersRouteV2(app);
-  ImportAuthRouteV2(app);
 
   app.all('/v[0-9]+/*', (req, res) => res.status(404).send({ err: `API method not found: '${req.path}'` }));
 }

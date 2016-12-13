@@ -1,25 +1,61 @@
+import { promisifyAll } from 'bluebird'
 import FB from 'fb';
-export default async function(params){
-	const controller = new FacebookController(params);
-	const posts = await controller.getPostsSince(params.lastid);
-	return posts.data.map((post)=>{
-		const attachments = (post.attachments && post.attachments.data)
-			? post.attachments.data : [];
-		const id = post.id.split('_');
-		return {'body': `${post.message}\n Read on Facebook: https://www.facebook.com/${id[0]}/posts/${id[1]}`,
-			'attachments': attachments.reduce(convert,[]).filter(Boolean)
-		}
+import OAuth2 from './OAuth2Controller';
+import { load as configLoader } from '../config/config';
+
+const config = configLoader();
+const secret = config.secret
+
+export default class FacebookController{
+	static async load (params){
+		const controller = new FacebookController(params);
+		const posts = await controller.getPostsSince(params.lastid);
+		return posts.data.map((post)=>{
+			const attachments = (post.attachments && post.attachments.data)
+				? post.attachments.data : [];
+			const id = post.id.split('_');
+			return {'body': `${post.message}\n Read on Facebook: https://www.facebook.com/${id[0]}/posts/${id[1]}`,
+				'attachments': attachments.reduce(convert,[]).filter(Boolean)
+			}
+				
+			function convert(acc, attachment){
+				const head = (attachment.subattachments && attachment.subattachments.data)
+					? attachment.subattachments.data.reduce(convert,[]):[];
+				if(attachment.type != 'photo') return head;
+				return acc.concat(head, attachment.media.image.src);
+			};
 			
-		function convert(acc, attachment){
-			const head = (attachment.subattachments && attachment.subattachments.data)
-				? attachment.subattachments.data.reduce(convert,[]):[];
-			if(attachment.type != 'photo') return head;
-			return acc.concat(head, attachment.media.image.src);
-		};
-		
-	}).reverse();
+		}).reverse();
+	}
+
+	static auth (){
+		const oa2 = new OAuth2({
+			'service': 'facebook',
+			'clientId': config.import.facebook.clientId,
+			'secret': config.import.facebook.secret,
+			'authURL': 'https://www.facebook.com/dialog/oauth',
+			'accessTokenURL': 'https://graph.facebook.com/oauth/access_token',
+			'verifyURL': 'https://graph.facebook.com/v2.8/me/permissions',
+			'scope': 'user_posts,user_photos',
+			'chkScope': (resp, resolve, reject) => {
+				try{
+					const permissions = JSON.parse(resp).data.map((item) => {
+						return (item.status == "granted") ? item.permission:null;
+					}).filter(Boolean);
+					if( (permissions.indexOf('user_posts') == -1) 
+						|| (permissions.indexOf('user_photos') == -1)
+					) return reject('Not enough permissions');
+					resolve('OK');
+				}catch(e){reject(e)};
+			}
+		});
+		return {
+			'auth': async function (){ return oa2.auth.apply(oa2, arguments); },
+			'callback': function (){ return oa2.callback.apply(oa2, arguments); }
+		}
+	}
 }
-class FacebookController{
+class DataInterface{
 	constructor(data){
 		this.credentials = data.credentials;
 		this.userid = data.userid;
